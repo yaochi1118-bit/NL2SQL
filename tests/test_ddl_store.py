@@ -55,3 +55,12 @@ class TestDDLStore:
         store.save("系统", "NEW DDL")
         content, _ = store.get("系统")
         assert content == "NEW DDL"
+
+    def test_exists(self, store):
+        store.save("存在的系统", "DDL")
+        assert store.exists("存在的系统") is True
+        assert store.exists("不存在的系统") is False
+
+    def test_list_all_empty(self, store):
+        ddl_list = store.list_all()
+        assert ddl_list == []
