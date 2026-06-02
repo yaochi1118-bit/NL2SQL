@@ -42,7 +42,7 @@ class TestConfigStore:
             api_key="sk-abcdefghijklmnop",
         )
         display = store.get_display_dict(config)
-        assert "sk-abc***op" in display["api_key"]
+        assert "sk-ab***nop" in display["api_key"]
         assert "sk-abcdefghijklmnop" not in display["api_key"]
 
 

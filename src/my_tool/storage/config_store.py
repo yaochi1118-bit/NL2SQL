@@ -49,7 +49,7 @@ class ConfigStore:
     def get_display_dict(self, config: LLMConfig) -> dict:
         """Return config dict with API key masked for safe display."""
         key = config.api_key
-        masked = key[:6] + "***" + key[-2:] if len(key) > 8 else "***"
+        masked = key[:5] + "***" + key[-3:] if len(key) > 8 else "***"
         return {
             "provider": config.provider,
             "base_url": config.base_url,
