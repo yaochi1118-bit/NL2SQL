@@ -1,3 +1,8 @@
+from datetime import datetime
+
+import pytest
+from pydantic import ValidationError
+
 from my_tool.models import LLMConfig, DDLMeta, Conversation, Message
 
 
@@ -9,8 +14,6 @@ def test_llm_config_defaults():
 
 
 def test_llm_config_no_api_key():
-    from pydantic import ValidationError
-    import pytest
     with pytest.raises(ValidationError):
         LLMConfig(api_key="", base_url="https://api.openai.com/v1")
 
@@ -40,7 +43,6 @@ def test_conversation_create():
 
 
 def test_conversation_default_updated_at():
-    from datetime import datetime
     conv = Conversation(
         id="conv-test-2",
         ddl_name="电商系统",
@@ -49,3 +51,9 @@ def test_conversation_default_updated_at():
     )
     assert isinstance(conv.created_at, datetime)
     assert isinstance(conv.updated_at, datetime)
+
+
+def test_message_create():
+    msg = Message(role="assistant", content="SELECT * FROM users;")
+    assert msg.role == "assistant"
+    assert msg.content == "SELECT * FROM users;"
