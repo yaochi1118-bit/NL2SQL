@@ -1,0 +1,24 @@
+[project]
+name = "my-tool"
+version = "0.1.0"
+description = "DDL-to-SQL intelligent query tool — upload DDL, ask questions in natural language, get SQL"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.12.0",
+    "rich>=13.0.0",
+    "openai>=1.0.0",
+    "pydantic>=2.0.0",
+    "tomli-w>=1.0.0",
+    "prompt-toolkit>=3.0.0",
+]
+
+[project.scripts]
+my-tool = "my_tool.main:app"
+
+[build-system]
+requires = ["uv_build>=0.11.17,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
