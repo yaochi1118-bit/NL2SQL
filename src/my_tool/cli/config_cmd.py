@@ -55,7 +55,10 @@ def get_config_app(base_path: Path) -> typer.Typer:
         """Set a configuration value."""
         try:
             service.set(key, value)
-            console.print(f"[green]✓[/green] [bold]{key}[/bold] updated to [cyan]{value}[/cyan]")
+            display_value = value
+            if key == "api_key" and len(value) > 8:
+                display_value = value[:5] + "***" + value[-3:]
+            console.print(f"[green]✓[/green] [bold]{key}[/bold] updated to [cyan]{display_value}[/cyan]")
         except (FileNotFoundError, ValueError) as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(code=1)

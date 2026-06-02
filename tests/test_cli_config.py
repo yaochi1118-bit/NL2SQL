@@ -50,6 +50,22 @@ class TestConfigCLI:
         result = runner.invoke(app, ["set", "model", "gpt-4o-mini"])
         assert result.exit_code == 0
         assert "model" in result.stdout.lower()
+        assert "gpt-4o-mini" in result.stdout
+
+    def test_config_set_before_init(self, runner, temp_dir):
+        app = get_config_app(temp_dir)
+        result = runner.invoke(app, ["set", "model", "gpt-4o"])
+        assert result.exit_code != 0
+
+    def test_config_set_invalid_key(self, runner, temp_dir):
+        app = get_config_app(temp_dir)
+        runner.invoke(app, [
+            "init", "--base-url", "https://api.openai.com/v1",
+            "--api-key", "sk-test",
+            "--model", "gpt-4o",
+        ])
+        result = runner.invoke(app, ["set", "invalid_key", "value"])
+        assert result.exit_code != 0
 
     def test_config_show_before_init(self, runner, temp_dir):
         app = get_config_app(temp_dir)
