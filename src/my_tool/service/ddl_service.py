@@ -47,6 +47,7 @@ class DDLService:
         name: str,
         file_path: str,
         tags: list[str] | None = None,
+        force: bool = False,
     ) -> None:
         """Read DDL from a file and add it.
 
@@ -54,16 +55,19 @@ class DDLService:
             name: Name of the DDL schema.
             file_path: Path to the file containing DDL content.
             tags: Optional list of tags.
+            force: If True, overwrite existing DDL with the same name.
 
         Raises:
             FileNotFoundError: If the file does not exist.
+            ValueError: If the file content is empty.
+            FileExistsError: If name already exists and force is False.
         """
         path = Path(file_path)
         if not path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
 
         content = path.read_text(encoding="utf-8")
-        self.add(name, content, tags=tags)
+        self.add(name, content, tags=tags, force=force)
 
     def list_all(self) -> list[DDLMeta]:
         """List all stored DDL schemas."""

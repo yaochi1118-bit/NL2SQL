@@ -18,7 +18,7 @@ class TestDDLService:
         assert len(ddl_list) == 1
         assert ddl_list[0].name == "电商系统"
 
-    def test_add_duplicate_prompt(self, service):
+    def test_add_duplicate_ddl(self, service):
         service.add("系统", "DDL A")
         with pytest.raises(FileExistsError):
             service.add("系统", "DDL B")
@@ -40,6 +40,15 @@ class TestDDLService:
             service.add_from_file("文件导入", str(file_path))
         content, meta = service.get("文件导入")
         assert "CREATE TABLE test" in content
+
+    def test_add_from_nonexistent_file_raises(self, service):
+        with pytest.raises(FileNotFoundError, match="not found"):
+            service.add_from_file("系统", "/nonexistent/path.sql")
+
+    def test_exists(self, service):
+        service.add("系统", "DDL")
+        assert service.exists("系统") is True
+        assert service.exists("不存在的系统") is False
 
     def test_delete_ddl(self, service):
         service.add("待删除", "CREATE TABLE t (id INT);")
