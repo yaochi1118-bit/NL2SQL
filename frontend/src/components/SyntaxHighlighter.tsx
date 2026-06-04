@@ -7,7 +7,6 @@ hljs.registerLanguage('sql', sql)
 
 interface Props {
   code: string
-  showLineNumbers?: boolean
 }
 
 export default function SyntaxHighlighter({ code }: Props) {
