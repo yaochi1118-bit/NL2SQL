@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from my_tool.api.routes_ddl import router as ddl_router
 from my_tool.api.routes_chat import router as chat_router
@@ -40,6 +41,11 @@ def create_app(base_path: Path | None = None) -> FastAPI:
     app.include_router(ddl_router, prefix="/api")
     app.include_router(chat_router, prefix="/api")
     app.include_router(config_router, prefix="/api")
+
+    # Serve frontend static files in production
+    frontend_dist = Path(__file__).resolve().parent.parent.parent.parent / "frontend" / "dist"
+    if frontend_dist.exists():
+        app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
 
     return app
 

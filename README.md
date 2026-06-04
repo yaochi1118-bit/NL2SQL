@@ -301,3 +301,48 @@ A: 存储在运行目录的 `conversations/` 文件夹中，JSON 格式，可手
 ## 📄 License
 
 MIT
+
+---
+
+## Web 前端
+
+DDL-to-SQL 提供了一个本地 Web 前端界面。
+
+### 开发模式
+
+需要两个终端：
+
+```bash
+# 终端 1：启动后端 API
+uv run uvicorn my_tool.api.server:app --reload --port 8000
+
+# 终端 2：启动前端开发服务器
+cd frontend
+npm run dev
+```
+
+打开 http://localhost:5173 即可使用。
+
+### 生产模式
+
+```bash
+cd frontend
+npm run build
+cd ..
+uv run uvicorn my_tool.api.server:app --host 127.0.0.1 --port 8000
+```
+
+打开 http://localhost:8000 即可使用。
+
+### 一键启动
+
+Windows:
+```bat
+frontend\start.bat
+```
+
+Linux/macOS:
+```bash
+chmod +x frontend/start.sh
+./frontend/start.sh
+```
