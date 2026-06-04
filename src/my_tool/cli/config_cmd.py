@@ -31,7 +31,7 @@ def get_config_app(base_path: Path) -> typer.Typer:
                 console.print("[yellow]Cancelled.[/yellow]")
                 raise typer.Exit()
         service.init_interactive(base_url=base_url, api_key=api_key, model=model)
-        console.print("[green]✓[/green] Configuration created successfully!")
+        console.print("[green]OK[/green] Configuration created successfully!")
 
     @app.command()
     def show():
@@ -60,7 +60,7 @@ def get_config_app(base_path: Path) -> typer.Typer:
             display_value = value
             if key == "api_key" and len(value) > 8:
                 display_value = value[:5] + "***" + value[-3:]
-            console.print(f"[green]✓[/green] [bold]{key}[/bold] updated to [cyan]{display_value}[/cyan]")
+            console.print(f"[green]OK[/green] [bold]{key}[/bold] updated to [cyan]{display_value}[/cyan]")
         except (FileNotFoundError, ValueError) as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(code=1)

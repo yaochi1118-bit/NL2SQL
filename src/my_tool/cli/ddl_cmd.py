@@ -39,7 +39,7 @@ def get_ddl_app(base_path: Path) -> typer.Typer:
                 service.add_from_file(name, file, tags=tag, force=force)
             else:
                 service.add(name, text, tags=tag, force=force)
-            console.print(f"[green]✓[/green] DDL '{name}' saved.")
+            console.print(f"[green]OK[/green] DDL '{name}' saved.")
         except (FileNotFoundError, FileExistsError, ValueError) as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(code=1)
@@ -97,7 +97,7 @@ def get_ddl_app(base_path: Path) -> typer.Typer:
         """Delete a DDL schema."""
         try:
             service.delete(name)
-            console.print(f"[green]✓[/green] DDL '{name}' deleted.")
+            console.print(f"[green]OK[/green] DDL '{name}' deleted.")
         except FileNotFoundError as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(code=1)

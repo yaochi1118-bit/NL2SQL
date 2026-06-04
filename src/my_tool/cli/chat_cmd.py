@@ -43,7 +43,7 @@ def get_chat_app(base_path: Path) -> typer.Typer:
             raise typer.Exit(code=1)
 
         console.print(
-            f"[green]✓[/green] Conversation started! ID: [cyan]{conv.id}[/cyan]"
+            f"[green]OK[/green] Conversation started! ID: [cyan]{conv.id}[/cyan]"
         )
 
     @app.command(name="continue")
