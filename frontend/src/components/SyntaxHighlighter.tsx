@@ -10,7 +10,7 @@ interface Props {
   showLineNumbers?: boolean
 }
 
-export default function SyntaxHighlighter({ code, showLineNumbers = true }: Props) {
+export default function SyntaxHighlighter({ code }: Props) {
   const [copied, setCopied] = useState(false)
   const highlighted = useMemo(() => {
     const result = hljs.highlight(code, { language: 'sql' })
