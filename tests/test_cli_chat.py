@@ -26,7 +26,10 @@ class TestChatCLI:
             yield get_chat_app(base)
 
     def test_chat_start(self, runner, app):
-        result = runner.invoke(app, ["start", "电商系统", "--target-db", "PostgreSQL"])
+        result = runner.invoke(
+            app, ["start", "电商系统", "--target-db", "PostgreSQL"],
+            input="q\n",
+        )
         assert result.exit_code == 0
         assert "started" in result.stdout.lower()
 

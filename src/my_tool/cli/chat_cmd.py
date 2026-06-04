@@ -4,6 +4,8 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
+from rich.syntax import Syntax
 from rich.table import Table
 
 from my_tool.service.chat_service import ChatService
@@ -11,6 +13,68 @@ from my_tool.service.chat_service import ChatService
 console = Console()
 
 TARGET_DB_CHOICES = ["MySQL", "PostgreSQL", "SQLite", "MaxCompute"]
+
+
+def _interactive_loop(service: ChatService, conv_id: str) -> None:
+    """Run an interactive Q&A loop for a conversation."""
+    conv = service.get_conversation(conv_id)
+    if conv is None:
+        console.print("[red]Error: Conversation not found.[/red]")
+        raise typer.Exit(code=1)
+
+    console.print()
+    console.print(
+        Panel.fit(
+            f"[bold]DDL:[/bold] {conv.ddl_name}    "
+            f"[bold]Target DB:[/bold] [cyan]{conv.target_db}[/cyan]    "
+            f"[bold]Messages:[/bold] {conv.message_count}",
+        )
+    )
+    console.print("[dim]Type 'exit', 'quit', or 'q' to end.[/dim]")
+    console.print()
+
+    while True:
+        try:
+            question = input("> ")
+        except (EOFError, KeyboardInterrupt):
+            console.print()
+            break
+
+        question = question.strip()
+        if question.lower() in ("exit", "quit", "q"):
+            break
+        if not question:
+            continue
+
+        with console.status("[bold green]Thinking...[/bold green]"):
+            try:
+                result = service.ask(conv_id, question)
+            except FileNotFoundError as e:
+                console.print(f"[red]Error:[/red] {e}")
+                console.print(
+                    "[yellow]Use 'chat history' to check available conversations, "
+                    "or 'config init' to set up LLM configuration.[/yellow]"
+                )
+                break
+
+        if result["valid"] and result["sql"]:
+            syntax = Syntax(
+                result["sql"],
+                "sql",
+                theme="monokai",
+                line_numbers=True,
+                word_wrap=True,
+            )
+            console.print()
+            console.print(syntax)
+        else:
+            console.print()
+            console.print("[yellow]No valid SQL extracted from the response.[/yellow]")
+
+        if result["explanation"]:
+            console.print(f"\n[dim]{result['explanation']}[/dim]")
+
+        console.print()
 
 
 def get_chat_app(base_path: Path) -> typer.Typer:
@@ -45,6 +109,8 @@ def get_chat_app(base_path: Path) -> typer.Typer:
         console.print(
             f"[green]OK[/green] Conversation started! ID: [cyan]{conv.id}[/cyan]"
         )
+
+        _interactive_loop(service, conv.id)
 
     @app.command(name="continue")
     def continue_(
@@ -82,6 +148,9 @@ def get_chat_app(base_path: Path) -> typer.Typer:
                     else msg.content
                 )
                 console.print(f"  {role_tag}: {preview}")
+
+        console.print()
+        _interactive_loop(service, conv.id)
 
     @app.command()
     def history():
