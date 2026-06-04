@@ -1,5 +1,0 @@
-[llm]
-provider = "openai-compatible"
-base_url = "https://api.deepseek.com"
-api_key = "sk-2d8c8928cbf3435387fa33b9193d53d2"
-model = "deepseek-chat"

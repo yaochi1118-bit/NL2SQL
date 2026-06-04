@@ -18,6 +18,7 @@ export default function App() {
           <Route path="/chat/:convId" element={<Chat />} />
           <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/ddls" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

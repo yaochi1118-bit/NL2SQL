@@ -16,3 +16,6 @@ wheels/
 frontend/node_modules/
 frontend/dist/
 *.tsbuildinfo
+
+# Config (may contain API keys)
+config.toml

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { chatApi, ddlApi, Conversation, DDLMeta } from '../api/client'
 import SyntaxHighlighter from '../components/SyntaxHighlighter'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -12,6 +12,7 @@ interface ChatMessage {
 
 export default function Chat() {
   const { convId } = useParams<{ convId: string }>()
+  const navigate = useNavigate()
   const [conv, setConv] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -62,7 +63,7 @@ export default function Chat() {
       const c = await chatApi.create({ ddl_name: selectedDDL, target_db: targetDB })
       setConv(c)
       setMessages([])
-      window.history.pushState(null, '', `/chat/${c.id}`)
+      navigate(`/chat/${c.id}`, { replace: true })
     } catch (e: any) {
       alert(e.message)
     } finally {
