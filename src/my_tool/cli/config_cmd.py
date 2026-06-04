@@ -19,10 +19,12 @@ def get_config_app(base_path: Path) -> typer.Typer:
     @app.command()
     def init(
         base_url: str = typer.Option(..., prompt="API Base URL (e.g. https://api.openai.com/v1)"),
-        api_key: str = typer.Option(..., prompt="API Key", hide_input=True),
+        api_key: str = typer.Option(None, "--api-key", "-k", help="API Key"),
         model: str = typer.Option("gpt-4o", prompt="Model name (e.g. gpt-4o, deepseek-chat)"),
     ):
         """Initialize LLM configuration interactively."""
+        if api_key is None:
+            api_key = input("API Key: ")
         if service.config_exists():
             confirm = typer.confirm("Configuration already exists. Overwrite?")
             if not confirm:
