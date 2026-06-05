@@ -47,6 +47,21 @@ def get_ddl(name: str, request: Request):
     return {"name": meta.name, "content": content, "meta": meta}
 
 
+class DDLUpdateRequest(BaseModel):
+    text: str
+    tags: list[str] = []
+
+
+@router.put("/ddls/{name}")
+def update_ddl(name: str, body: DDLUpdateRequest, request: Request):
+    svc = _get_ddl_service(request.app.state.base_path)
+    try:
+        svc.add(name, body.text, tags=body.tags, force=True)
+        return {"status": "ok", "name": name}
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
 @router.delete("/ddls/{name}")
 def delete_ddl(name: str, request: Request):
     svc = _get_ddl_service(request.app.state.base_path)

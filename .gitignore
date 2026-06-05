@@ -19,3 +19,16 @@ frontend/dist/
 
 # Config (may contain API keys)
 config.toml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime conversation files
+conversations/

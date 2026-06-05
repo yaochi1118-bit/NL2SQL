@@ -10,19 +10,13 @@ interface Props {
 export default function ConfirmDialog({ open, title, message, confirmLabel = '确认', onConfirm, onCancel }: Props) {
   if (!open) return null
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-    }} onClick={onCancel}>
-      <div style={{
-        background: 'var(--bg-secondary)', borderRadius: 12, padding: 24, minWidth: 360,
-        border: '1px solid var(--border)',
-      }} onClick={e => e.stopPropagation()}>
-        <h3 style={{ marginBottom: 8 }}>{title}</h3>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>{message}</p>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn-secondary" onClick={onCancel}>取消</button>
-          <button className="btn-danger" onClick={onConfirm}>{confirmLabel}</button>
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" style={{ minWidth: 360 }} onClick={e => e.stopPropagation()}>
+        <h3 className="modal-title">{title}</h3>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 20, fontSize: 14, lineHeight: 1.6 }}>{message}</p>
+        <div className="modal-actions">
+          <button className="btn btn-ghost" onClick={onCancel}>取消</button>
+          <button className="btn btn-danger-ghost" onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>
     </div>

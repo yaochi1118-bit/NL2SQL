@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DDL-to-SQL · 设计样本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  /* ========== RESET & BASE ========== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-deep: #07070d;
+    --bg-surface: #0e0e18;
+    --bg-card: #161622;
+    --bg-card-hover: #1c1c2e;
+    --accent-gold: #d4a047;
+    --accent-gold-glow: rgba(212, 160, 71, 0.15);
+    --accent-teal: #2dd4bf;
+    --accent-teal-dim: rgba(45, 212, 191, 0.1);
+    --text-primary: #e8e4de;
+    --text-secondary: #9a95a8;
+    --text-muted: #5c5768;
+    --border-subtle: rgba(255, 255, 255, 0.04);
+    --border-card: rgba(212, 160, 71, 0.08);
+    --danger: #ef4444;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  html { font-size: 15px; }
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ========== NOISE TEXTURE OVERLAY ========== */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  /* ========== ANIMATED BACKGROUND GRID ========== */
+  .bg-grid {
+    position: fixed; inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .bg-grid::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(212, 160, 71, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(45, 212, 191, 0.02) 0%, transparent 50%);
+    animation: bg-drift 30s ease-in-out infinite;
+  }
+
+  @keyframes bg-drift {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-2%, 2%); }
+  }
+
+  /* ========== DECORATIVE ACCENT LINE ========== */
+  .accent-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    z-index: 100;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--accent-gold) 15%,
+      var(--accent-teal) 50%,
+      var(--accent-gold) 85%,
+      transparent 100%
+    );
+    opacity: 0.6;
+  }
+
+  /* ========== SCROLLBAR ========== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(212, 160, 71, 0.3); }
+
+  /* ========== LAYOUT ========== */
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 32px 80px;
+  }
+
+  /* ========== HEADER ========== */
+  .header {
+    padding: 48px 0 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 40px;
+    position: relative;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0;
+    width: 120px;
+    height: 1px;
+    background: var(--accent-gold);
+    animation: header-line-grow 0.8s ease-out forwards;
+  }
+
+  @keyframes header-line-grow {
+    from { width: 0; }
+    to { width: 120px; }
+  }
+
+  .header-left {
+    animation: fade-slide-up 0.6s ease-out;
+  }
+
+  .header-sup {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--accent-gold);
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-sup::before {
+    content: '';
+    display: inline-block;
+    width: 16px; height: 1px;
+    background: var(--accent-gold);
+  }
+
+  .header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 2.4rem;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+
+  .header h1 span {
+    color: var(--accent-gold);
+  }
+
+  .header-count {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    font-weight: 300;
+  }
+
+  .header-count strong {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    animation: fade-slide-up 0.6s ease-out 0.1s both;
+  }
+
+  /* ========== BUTTONS ========== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--accent-gold);
+    color: var(--bg-deep);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 24px var(--accent-gold-glow);
+    background: #e0ae54;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-card);
+  }
+
+  .btn-ghost:hover {
+    border-color: rgba(212, 160, 71, 0.3);
+    color: var(--text-primary);
+    background: rgba(212, 160, 71, 0.05);
+  }
+
+  /* ========== CARD GRID ========== */
+  .card-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ========== CARD ========== */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    animation: card-enter 0.5s ease-out forwards;
+  }
+
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.12s; }
+  .card:nth-child(3) { animation-delay: 0.19s; }
+  .card:nth-child(4) { animation-delay: 0.26s; }
+  .card:nth-child(5) { animation-delay: 0.33s; }
+
+  @keyframes card-enter {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Card glow on hover */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(212, 160, 71, 0.04) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  .card:hover::before { opacity: 1; }
+
+  .card:hover {
+    border-color: rgba(212, 160, 71, 0.25);
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+
+  /* Card left accent strip */
+  .card::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 20%; bottom: 20%;
+    width: 2px;
+    background: var(--accent-gold);
+    border-radius: 1px;
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+
+  .card:hover::after {
+    opacity: 1;
+    top: 10%;
+    bottom: 10%;
+    box-shadow: 0 0 8px var(--accent-gold-glow);
+  }
+
+  /* ========== CARD CONTENT ========== */
+  .card-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-left: 4px;
+  }
+
+  .card-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    transition: color 0.2s;
+  }
+
+  .card:hover .card-name {
+    color: var(--accent-gold);
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+
+  .card-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .card-meta-item .icon {
+    font-size: 11px;
+    opacity: 0.6;
+  }
+
+  .card-tags {
+    display: flex;
+    gap: 6px;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+    border: 1px solid rgba(45, 212, 191, 0.08);
+  }
+
+  .tag.mysql {
+    background: rgba(212, 160, 71, 0.08);
+    color: var(--accent-gold);
+    border-color: rgba(212, 160, 71, 0.08);
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .card:hover .card-actions {
+    opacity: 1;
+  }
+
+  .card-action-btn {
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    color: var(--text-muted);
+    padding: 6px 14px;
+    font-size: 12px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .card-action-btn:hover {
+    background: rgba(255,255,255,0.04);
+    color: var(--text-secondary);
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  .card-action-btn.edit:hover {
+    border-color: rgba(212, 160, 71, 0.3);
+    color: var(--accent-gold);
+  }
+
+  .card-action-btn.delete:hover {
+    border-color: rgba(239, 68, 68, 0.3);
+    color: var(--danger);
+  }
+
+  /* ========== EMPTY STATE ========== */
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    border: 1px dashed var(--border-card);
+    border-radius: var(--radius);
+    animation: fade-slide-up 0.6s ease-out 0.3s both;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 16px;
+    opacity: 0.3;
+    filter: grayscale(1);
+  }
+
+  .empty-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+
+  .empty-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 300px;
+    margin: 0 auto 24px;
+  }
+
+  /* ========== ANIMATIONS ========== */
+  @keyframes fade-slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ========== FOOTER DECOR ========== */
+  .footer-decor {
+    margin-top: 48px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    opacity: 0.3;
+  }
+
+  .footer-decor span {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--accent-gold);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  .footer-decor span:nth-child(2) {
+    background: var(--accent-teal);
+    animation-delay: 0.3s;
+  }
+
+  .footer-decor span:nth-child(3) {
+    background: var(--accent-gold);
+    animation-delay: 0.6s;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 768px) {
+    .app { padding: 0 16px 40px; }
+    .header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .header h1 { font-size: 1.8rem; }
+    .card { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+    .card-actions { opacity: 1; align-self: flex-end; }
+    .card-meta { flex-wrap: wrap; gap: 8px; }
+  }
+
+  /* ========== GLOWING ORB (DECORATIVE) ========== */
+  .glow-orb {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.15;
+  }
+
+  .glow-orb.gold {
+    top: -150px; right: -150px;
+    background: var(--accent-gold);
+    animation: orb-gold 12s ease-in-out infinite;
+  }
+
+  .glow-orb.teal {
+    bottom: -200px; left: -200px;
+    background: var(--accent-teal);
+    animation: orb-teal 15s ease-in-out infinite;
+  }
+
+  @keyframes orb-gold {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-60px, 40px) scale(1.1); }
+    66% { transform: translate(30px, -20px) scale(0.9); }
+  }
+
+  @keyframes orb-teal {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(40px, -60px) scale(0.9); }
+    66% { transform: translate(-20px, 30px) scale(1.1); }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Decorative elements -->
+  <div class="glow-orb gold"></div>
+  <div class="glow-orb teal"></div>
+  <div class="bg-grid"></div>
+  <div class="accent-bar"></div>
+
+  <div class="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="header-sup">Schema Registry</div>
+        <h1>DDL <span>管理</span></h1>
+        <div class="header-count">
+         共 <strong>4</strong> 个数据库 Schema
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" onclick="this.classList.toggle('active')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          搜索
+        </button>
+        <button class="btn btn-primary" onclick="alert('打开上传弹窗')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          新建 Schema
+        </button>
+      </div>
+    </header>
+
+    <!-- Card List -->
+    <div class="card-grid">
+
+      <div class="card" onmousemove="handleMouseMove(event, this)">
+        <div class="card-left">
+          <div class="card-name">电商系统</div>
+          <div class="card-meta">
+            <span class="card-meta-item">
+              <span class="icon">⊞</span> 9 张表
+            </span>
+            <span class="card-meta-item">
+              <span class="icon">◷</span> 2026-06-02 14:32
+            </span>
+            <div class="card-tags">
+              <span class="tag mysql">MySQL</span>
+              <span class="tag">生产</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action-btn edit" onclick="event.stopPropagation(); alert('编辑')">编辑</button>
+          <button class="card-action-btn delete" onclick="event.stopPropagation(); alert('删除')">删除</button>
+        </div>
+      </div>
+
+      <div class="card" onmousemove="handleMouseMove(event, this)">
+        <div class="card-left">
+          <div class="card-name">财务系统</div>
+          <div class="card-meta">
+            <span class="card-meta-item">
+              <span class="icon">⊞</span> 5 张表
+            </span>
+            <span class="card-meta-item">
+              <span class="icon">◷</span> 2026-06-01 09:15
+            </span>
+            <div class="card-tags">
+              <span class="tag mysql">MySQL</span>
+              <span class="tag">财务</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action-btn edit" onclick="event.stopPropagation(); alert('编辑')">编辑</button>
+          <button class="card-action-btn delete" onclick="event.stopPropagation(); alert('删除')">删除</button>
+        </div>
+      </div>
+
+      <div class="card" onmousemove="handleMouseMove(event, this)">
+        <div class="card-left">
+          <div class="card-name">用户行为分析</div>
+          <div class="card-meta">
+            <span class="card-meta-item">
+              <span class="icon">⊞</span> 4 张表
+            </span>
+            <span class="card-meta-item">
+              <span class="icon">◷</span> 2026-05-28 16:42
+            </span>
+            <div class="card-tags">
+              <span class="tag">PostgreSQL</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action-btn edit" onclick="event.stopPropagation(); alert('编辑')">编辑</button>
+          <button class="card-action-btn delete" onclick="event.stopPropagation(); alert('删除')">删除</button>
+        </div>
+      </div>
+
+      <div class="card" onmousemove="handleMouseMove(event, this)">
+        <div class="card-left">
+          <div class="card-name">物流追踪</div>
+          <div class="card-meta">
+            <span class="card-meta-item">
+              <span class="icon">⊞</span> 7 张表
+            </span>
+            <span class="card-meta-item">
+              <span class="icon">◷</span> 2026-05-25 11:08
+            </span>
+            <div class="card-tags">
+              <span class="tag">SQLite</span>
+              <span class="tag">开发</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action-btn edit" onclick="event.stopPropagation(); alert('编辑')">编辑</button>
+          <button class="card-action-btn delete" onclick="event.stopPropagation(); alert('删除')">删除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer decor -->
+    <div class="footer-decor">
+      <span></span><span></span><span></span>
+    </div>
+
+  </div>
+
+  <script>
+    // Mouse-tracking glow on cards
+    function handleMouseMove(event, el) {
+      const rect = el.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 100;
+      const y = ((event.clientY - rect.top) / rect.height) * 100;
+      el.style.setProperty('--mouse-x', x + '%');
+      el.style.setProperty('--mouse-y', y + '%');
+    }
+  </script>
+</body>
+</html>

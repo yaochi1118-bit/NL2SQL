@@ -22,12 +22,19 @@ class ChatService:
         self._ddl_service = DDLService(base_path)
         self._conv_store = ConversationStore(base_path / "conversations")
 
-    def create_conversation(self, ddl_name: str, target_db: str) -> Conversation:
-        """Create a new conversation for a given DDL."""
-        if not self._ddl_service.exists(ddl_name):
+    def create_conversation(self, ddl_name: str | None, target_db: str) -> Conversation:
+        """Create a new conversation.
+
+        Args:
+            ddl_name: Optional DDL name. If None/empty, auto-detect mode.
+            target_db: Target database dialect.
+        """
+        ddl_name = ddl_name or ""
+        if ddl_name and not self._ddl_service.exists(ddl_name):
             raise FileNotFoundError(f"DDL '{ddl_name}' not found.")
 
-        conv_id = f"conv-{datetime.now().strftime('%Y%m%d')}-{ddl_name}-{uuid.uuid4().hex[:6]}"
+        label = ddl_name if ddl_name else "auto"
+        conv_id = f"conv-{datetime.now().strftime('%Y%m%d')}-{label}-{uuid.uuid4().hex[:6]}"
         conv = Conversation(
             id=conv_id,
             ddl_name=ddl_name,
@@ -48,14 +55,25 @@ class ChatService:
         if conv is None:
             raise FileNotFoundError(f"Conversation '{conv_id}' not found.")
 
-        # Get DDL content
-        ddl_result = self._ddl_service.get(conv.ddl_name)
-        if ddl_result is None:
-            raise FileNotFoundError(f"DDL '{conv.ddl_name}' not found.")
-        ddl_content, _ = ddl_result
-
-        # Build prompt
-        system_prompt = PromptBuilder.build_system_prompt(ddl_content, conv.target_db)
+        # Get DDL content (auto-detect mode if ddl_name is empty)
+        if conv.ddl_name:
+            ddl_result = self._ddl_service.get(conv.ddl_name)
+            if ddl_result is None:
+                raise FileNotFoundError(f"DDL '{conv.ddl_name}' not found.")
+            ddl_content, _ = ddl_result
+            system_prompt = PromptBuilder.build_system_prompt(ddl_content, conv.target_db)
+        else:
+            # Auto-detect: collect all DDLs and let LLM choose
+            all_ddls = self._ddl_service.list_all()
+            if not all_ddls:
+                raise RuntimeError("没有可用的 DDL。请先上传 DDL 后再提问。")
+            ddl_list: list[tuple[str, str, list[str]]] = []
+            for meta in all_ddls:
+                result = self._ddl_service.get(meta.name)
+                if result:
+                    content, _ = result
+                    ddl_list.append((meta.name, content, meta.tags))
+            system_prompt = PromptBuilder.build_multi_ddl_prompt(ddl_list, conv.target_db)
         history = [{"role": m.role, "content": m.content} for m in conv.messages]
         messages = PromptBuilder.build_messages(system_prompt, history, question)
 

@@ -68,11 +68,16 @@ export const ddlApi = {
     request<{ status: string; name: string }>(`/ddls/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     }),
+  update: (name: string, data: { text: string; tags?: string[] }) =>
+    request<{ status: string; name: string }>(`/ddls/${encodeURIComponent(name)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 }
 
 // Conversation APIs
 export const chatApi = {
-  create: (data: { ddl_name: string; target_db: string }) =>
+  create: (data: { ddl_name?: string; target_db: string }) =>
     request<Conversation>('/conversations', {
       method: 'POST',
       body: JSON.stringify(data),

@@ -39,45 +39,73 @@ export default function History() {
 
   return (
     <div>
-      <h1 style={{ marginBottom: 24 }}>历史对话</h1>
+      {/* Page Header */}
+      <header className="page-header">
+        <div className="page-header-left">
+          <div className="page-header-sup">Conversation Log</div>
+          <h1>历史 <span className="teal" style={{color:'var(--accent-teal)'}}>对话</span></h1>
+          <div className="page-header-desc">
+            共 <strong style={{color:'var(--text-secondary)'}}>{convs.length}</strong> 次对话记录
+          </div>
+        </div>
+      </header>
 
-      {error && <div style={{ color: 'var(--danger)', marginBottom: 16 }}>{error}</div>}
+      {error && <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14 }}>{error}</div>}
 
-      {loading ? <LoadingSpinner text="加载中..." /> : convs.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-          <p style={{ fontSize: 16 }}>暂无历史对话</p>
+      {loading ? (
+        <LoadingSpinner text="加载中..." />
+      ) : convs.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">🕐</div>
+          <div className="empty-title">暂无历史对话</div>
+          <div className="empty-desc">开始一个新的对话，记录会显示在这里</div>
+          <button className="btn btn-primary" onClick={() => navigate('/chat')}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            新对话
+          </button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 12 }}>
-          {convs.map(conv => (
+        <div className="card-list">
+          {convs.map((conv, idx) => (
             <div
               key={conv.id}
-              style={{
-                background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-                borderRadius: 8, padding: '16px 20px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                cursor: 'pointer', transition: 'border-color 0.2s',
-              }}
+              className="card-list-item"
+              style={{ animationDelay: `${0.05 + idx * 0.07}s` }}
               onClick={() => navigate(`/chat/${conv.id}`)}
-              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              onMouseMove={e => {
+                const rect = e.currentTarget.getBoundingClientRect()
+                const x = ((e.clientX - rect.left) / rect.width) * 100
+                const y = ((e.clientY - rect.top) / rect.height) * 100
+                e.currentTarget.style.setProperty('--mouse-x', x + '%')
+                e.currentTarget.style.setProperty('--mouse-y', y + '%')
+              }}
             >
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>
-                  {conv.ddl_name}
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> → {conv.target_db}</span>
+              <div className="card-left">
+                <div className="card-name">
+                  {conv.ddl_name || '自动匹配 DDL'}
+                  <span style={{ fontWeight: 300, color: 'var(--text-muted)', fontFamily: "'Outfit', sans-serif", fontSize: 13 }}>
+                    {' '}→ {conv.target_db}
+                  </span>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  {conv.message_count} 条消息 · {formatDate(conv.created_at)}
+                <div className="card-meta">
+                  <span className="card-meta-item">💬 {conv.message_count} 条消息</span>
+                  <span className="card-meta-item">◷ {formatDate(conv.created_at)}</span>
                 </div>
               </div>
-              <button
-                className="btn-danger"
-                onClick={e => { e.stopPropagation(); setDeleteTarget(conv.id) }}
-                style={{ fontSize: 13, padding: '4px 12px' }}
-              >
-                删除
-              </button>
+              <div className="card-actions">
+                <button
+                  className="card-action-btn edit"
+                  onClick={e => { e.stopPropagation(); navigate(`/chat/${conv.id}`) }}
+                >
+                  继续
+                </button>
+                <button
+                  className="card-action-btn delete"
+                  onClick={e => { e.stopPropagation(); setDeleteTarget(conv.id) }}
+                >
+                  删除
+                </button>
+              </div>
             </div>
           ))}
         </div>

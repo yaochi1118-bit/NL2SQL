@@ -1,8 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { chatApi, ddlApi, Conversation, DDLMeta } from '../api/client'
-import SyntaxHighlighter from '../components/SyntaxHighlighter'
-import LoadingSpinner from '../components/LoadingSpinner'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -57,10 +55,12 @@ export default function Chat() {
   }
 
   const handleCreate = async () => {
-    if (!selectedDDL) return
     setCreating(true)
     try {
-      const c = await chatApi.create({ ddl_name: selectedDDL, target_db: targetDB })
+      const c = await chatApi.create({
+        ...(selectedDDL ? { ddl_name: selectedDDL } : {}),
+        target_db: targetDB,
+      })
       setConv(c)
       setMessages([])
       navigate(`/chat/${c.id}`, { replace: true })
@@ -102,24 +102,40 @@ export default function Chat() {
   // New conversation selector
   if (!conv) {
     return (
-      <div>
-        <h1 style={{ marginBottom: 24 }}>新对话</h1>
-        <div style={{
-          background: 'var(--bg-secondary)', borderRadius: 8, padding: 24,
-          border: '1px solid var(--border)', maxWidth: 480,
+      <div style={{ animation: 'fade-slide-up 0.5s ease-out' }}>
+        <div className="page-header" style={{ borderBottom: 'none', paddingBottom: 0, marginBottom: 32 }}>
+          <div className="page-header-left">
+            <div className="page-header-sup">New Session</div>
+            <h1>新<span className="gold" style={{color:'var(--accent-gold)'}}>对话</span></h1>
+            <div className="page-header-desc">选择一个 Schema 开始生成 SQL</div>
+          </div>
+        </div>
+
+        <div className="new-conv-card" style={{
+          background: 'var(--bg-card)', border: '1px solid var(--border-card)',
+          borderRadius: 'var(--radius)', padding: 28, maxWidth: 460,
+          animation: 'card-enter 0.5s ease-out',
         }}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 4, fontSize: 13, color: 'var(--text-secondary)' }}>选择 DDL</label>
-            <select value={selectedDDL} onChange={e => setSelectedDDL(e.target.value)}>
-              <option value="">-- 请选择 --</option>
+          <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.1rem', marginBottom: 20 }}>
+            配置对话
+          </h2>
+
+          <div className="form-group">
+            <label className="form-label">
+              选择 DDL <span style={{ color: 'var(--text-muted)', fontWeight: 300 }}>（可选，不选则自动匹配）</span>
+            </label>
+            <select className="form-select" value={selectedDDL} onChange={e => setSelectedDDL(e.target.value)}>
+              <option value="">-- 自动匹配 --</option>
               {ddlList.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
             </select>
           </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 4, fontSize: 13, color: 'var(--text-secondary)' }}>目标数据库</label>
-            <input value={targetDB} onChange={e => setTargetDB(e.target.value)} placeholder="PostgreSQL" />
+
+          <div className="form-group" style={{ marginBottom: 24 }}>
+            <label className="form-label">目标数据库</label>
+            <input className="form-input" value={targetDB} onChange={e => setTargetDB(e.target.value)} placeholder="PostgreSQL" />
           </div>
-          <button className="btn-primary" onClick={handleCreate} disabled={creating || !selectedDDL}>
+
+          <button className="btn btn-primary" onClick={handleCreate} disabled={creating}>
             {creating ? '创建中...' : '开始对话'}
           </button>
         </div>
@@ -129,67 +145,82 @@ export default function Chat() {
 
   // Chat interface
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)' }}>
-      <div style={{ marginBottom: 16 }}>
-        <span style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-          对话: {conv.ddl_name} → {conv.target_db}
-        </span>
+    <div className="chat-layout">
+      {/* Chat Header */}
+      <div className="chat-header-bar">
+        <div className="chat-header-info">
+          <span className="chat-header-dot"></span>
+          <span className="chat-header-label">
+            <strong style={{ color: 'var(--accent-gold)', fontWeight: 500 }}>
+              {conv.ddl_name || '自动匹配 DDL'}
+            </strong>
+            <span style={{ color: 'var(--text-muted)', margin: '0 6px' }}>→</span>
+            {conv.target_db}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setConv(null); setMessages([]); navigate('/chat', { replace: true }) }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+            新对话
+          </button>
+        </div>
       </div>
 
-      <div style={{
-        flex: 1, overflow: 'auto', marginBottom: 16,
-        display: 'flex', flexDirection: 'column', gap: 12,
-        padding: '0 4px',
-      }}>
+      {/* Messages */}
+      <div className="chat-messages">
         {messages.map((msg, i) => (
-          <div key={i} style={{
-            maxWidth: '80%',
-            alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-          }}>
-            <div style={{
-              background: msg.role === 'user' ? 'var(--accent)' : 'var(--bg-secondary)',
-              color: msg.role === 'user' ? 'var(--bg-primary)' : 'var(--text-primary)',
-              borderRadius: 12,
-              borderBottomRightRadius: msg.role === 'user' ? 4 : 12,
-              borderBottomLeftRadius: msg.role === 'assistant' ? 4 : 12,
-              padding: '8px 14px',
-              fontSize: 14,
-              lineHeight: 1.5,
-            }}>
+          <div key={i} className={`chat-msg ${msg.role}`}>
+            <div className="chat-msg-bubble" style={msg.role === 'assistant' && msg.content.startsWith('错误') ? { borderColor: 'rgba(239,68,68,0.2)', color: 'var(--danger)' } : undefined}>
               {msg.content}
             </div>
             {msg.sql && (
-              <div style={{ marginTop: 8, width: '100%' }}>
-                <SyntaxHighlighter code={msg.sql} />
+              <div className="chat-msg-sql">
+                <div className="sql-header">
+                  <span>SQL</span>
+                  <button className="code-block-header-btn" onClick={() => {
+                    navigator.clipboard.writeText(msg.sql || '')
+                  }}>复制</button>
+                </div>
+                <div className="sql-body">{msg.sql}</div>
               </div>
             )}
           </div>
         ))}
-        {sending && <LoadingSpinner text="思考中..." />}
+        {sending && (
+          <div className="chat-msg assistant" style={{ opacity: 0.5 }}>
+            <div className="chat-msg-bubble" style={{ padding: '12px 16px' }}>
+              <div className="typing-dots">
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        <textarea
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="输入问题... (Enter 发送, Shift+Enter 换行)"
-          rows={2}
-          style={{
-            flex: 1, resize: 'none', fontFamily: 'inherit',
-            background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-            borderRadius: 8, padding: '10px 14px', color: 'var(--text-primary)',
-            fontSize: 14,
-          }}
-        />
+      {/* Input Area */}
+      <div className="chat-input-area">
+        <div className="chat-input-wrap">
+          <textarea
+            className="chat-input"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="输入问题... 用自然语言描述你想要的查询"
+            rows={1}
+          />
+          <div className="chat-input-hint">Enter 发送 · Shift+Enter 换行</div>
+        </div>
         <button
-          className="btn-primary"
+          className="chat-send-btn"
           onClick={handleSend}
           disabled={sending || !input.trim()}
-          style={{ alignSelf: 'flex-end', height: 40 }}
         >
-          发送
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+          </svg>
         </button>
       </div>
     </div>

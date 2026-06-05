@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import hljs from 'highlight.js/lib/core'
 import sql from 'highlight.js/lib/languages/sql'
-import 'highlight.js/styles/github-dark.css'
+import { useTheme } from '../theme/ThemeContext'
 
 hljs.registerLanguage('sql', sql)
 
@@ -11,6 +11,21 @@ interface Props {
 
 export default function SyntaxHighlighter({ code }: Props) {
   const [copied, setCopied] = useState(false)
+  const { theme } = useTheme()
+
+  // Dynamic theme stylesheet for highlight.js
+  useEffect(() => {
+    let link = document.querySelector<HTMLLinkElement>('#hljs-theme')
+    if (!link) {
+      link = document.createElement('link')
+      link.id = 'hljs-theme'
+      link.rel = 'stylesheet'
+      document.head.appendChild(link)
+    }
+    link.href = theme === 'light'
+      ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css'
+      : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github-dark.min.css'
+  }, [theme])
   const highlighted = useMemo(() => {
     const result = hljs.highlight(code, { language: 'sql' })
     return result.value
@@ -23,30 +38,19 @@ export default function SyntaxHighlighter({ code }: Props) {
   }
 
   return (
-    <div style={{
-      position: 'relative',
-      background: '#1e1e2e',
-      borderRadius: 8,
-      overflow: 'hidden',
-      border: '1px solid var(--border)',
-    }}>
-      <div style={{
-        display: 'flex', justifyContent: 'flex-end', padding: '4px 8px',
-        background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border)',
-      }}>
+    <div className="code-block">
+      <div className="code-block-header">
+        <span className="code-block-header-lang">SQL</span>
         <button
+          className="code-block-header-btn"
           onClick={handleCopy}
-          style={{
-            background: 'transparent', color: copied ? 'var(--success)' : 'var(--text-muted)',
-            padding: '2px 8px', fontSize: 12, border: '1px solid var(--border)',
-            borderRadius: 4,
-          }}
+          style={{ color: copied ? 'var(--accent-teal)' : undefined, borderColor: copied ? 'rgba(45,212,191,0.3)' : undefined }}
         >
           {copied ? '已复制' : '复制'}
         </button>
       </div>
-      <pre style={{ padding: '12px 16px', overflow: 'auto', margin: 0, fontSize: 13, lineHeight: 1.6 }}>
-        <code style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}
+      <pre className="code-block-body" style={{ margin: 0 }}>
+        <code style={{ fontFamily: "'JetBrains Mono', monospace" }}
           dangerouslySetInnerHTML={{ __html: highlighted }} />
       </pre>
     </div>

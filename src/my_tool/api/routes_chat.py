@@ -10,7 +10,7 @@ router = APIRouter(tags=["chat"])
 
 
 class ConversationCreateRequest(BaseModel):
-    ddl_name: str
+    ddl_name: str | None = None
     target_db: str
 
 

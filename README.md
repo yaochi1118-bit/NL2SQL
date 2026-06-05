@@ -304,45 +304,224 @@ MIT
 
 ---
 
-## Web 前端
+## 🌐 Web 前端
 
-DDL-to-SQL 提供了一个本地 Web 前端界面。
+DDL-to-SQL 提供了一个本地 Web 前端界面，以图形化方式替代命令行操作，支持 DDL 管理、智能对话、历史记录、配置管理等全部核心功能。
+
+> **技术栈**：React 18 + TypeScript + Vite（前端），FastAPI（后端 API）
+
+---
+
+### 环境要求
+
+| 依赖 | 版本 | 说明 |
+|------|------|------|
+| Python | >= 3.11 | 后端 API 服务 |
+| Node.js | >= 18 | 前端构建和开发服务器（[下载](https://nodejs.org/)） |
+| npm | >= 9 | 随 Node.js 一同安装 |
+
+> **首次使用前**，确保已执行 `uv sync` 安装 Python 依赖，并完成 LLM 配置（`my-tool config init` 或通过 Web 界面配置）。
+
+---
+
+### 安装前端依赖
+
+```bash
+cd frontend
+npm install
+```
+
+> 只需执行一次，或在 `package.json` 更新后重新执行。
+
+---
 
 ### 开发模式
 
-需要两个终端：
+前后端分离运行，支持热更新，适合开发调试：
 
 ```bash
-# 终端 1：启动后端 API
+# 终端 1：启动后端 API 服务（端口 8000）
 uv run uvicorn my_tool.api.server:app --reload --port 8000
 
-# 终端 2：启动前端开发服务器
+# 终端 2：启动前端开发服务器（端口 5173）
 cd frontend
 npm run dev
 ```
 
-打开 http://localhost:5173 即可使用。
+- 前端开发服务器运行在 **http://localhost:5173**
+- `/api/*` 请求自动代理到后端 `http://localhost:8000`
+- 修改前端代码后页面自动热更新，无需手动刷新
+
+---
 
 ### 生产模式
 
+先构建前端静态文件，再由后端统一提供服务（单进程，端口 8000）：
+
 ```bash
+# 1. 构建前端
 cd frontend
 npm run build
+
+# 2. 启动后端（自动托管前端静态文件）
 cd ..
 uv run uvicorn my_tool.api.server:app --host 127.0.0.1 --port 8000
 ```
 
-打开 http://localhost:8000 即可使用。
+- 所有资源由后端统一在 **http://localhost:8000** 提供
+- 前端构建产物位于 `frontend/dist/`（已加入 `.gitignore`）
+
+---
 
 ### 一键启动
 
-Windows:
+项目提供了一键启动脚本，自动完成前端构建和后端启动：
+
+**Windows（双击运行）：**
 ```bat
 frontend\start.bat
 ```
 
-Linux/macOS:
+**Linux/macOS：**
 ```bash
 chmod +x frontend/start.sh
 ./frontend/start.sh
 ```
+
+脚本执行流程：
+1. `cd frontend && npm run build` — 构建前端
+2. `uv run uvicorn my_tool.api.server:app --host 127.0.0.1 --port 8000` — 启动后端
+
+打开 **http://localhost:8000** 即可使用。
+
+---
+
+### Web 界面使用指南
+
+#### 🏠 页面概览
+
+```
+┌─────────────────────────────────────────────────┐
+│  DDL-to-SQL  v0.1.0       │ DDL管理 │ 对话 │ 历史 │ 设置 │
+│  ─────────────────────────────────────────────── │
+│  │                                             │
+│  │  ┌───────┐  ┌───────┐  ┌───────┐          │
+│  │  │ DDL-1 │  │ DDL-2 │  │ DDL-3 │  ...     │
+│  │  └───────┘  └───────┘  └───────┘          │
+│  │                                             │
+│  └─────────────────────────────────────────────┘
+```
+
+左侧边栏包含 4 个导航入口：
+- **DDL 管理** — 上传、查看、删除 DDL
+- **对话** — 基于 DDL 进行智能问答
+- **历史** — 查看和继续历史对话
+- **设置** — 配置 LLM API
+
+---
+
+#### ① DDL 管理页面（`/ddls`）
+
+**DDL 列表：**
+- 以卡片形式展示所有已上传的 DDL
+- 每张卡片显示：名称、表数量、标签、创建时间
+- 点击卡片进入详情页
+- 点击 ❌ 按钮删除 DDL（弹出确认对话框）
+
+**上传 DDL：**
+- 点击"上传 DDL"按钮打开上传弹窗
+- **名称**：必填，DDL 的唯一标识
+- **DDL 内容**：必填，粘贴 SQL DDL 语句（`CREATE TABLE` 等）
+- **标签**：可选，逗号分隔（如 `MySQL, 生产环境`）
+- **覆盖**：勾选后可覆盖已存在的同名 DDL（否则重名会报错）
+
+**DDL 详情页（`/ddls/:name`）：**
+- 展示 DDL 元数据（名称、表数量、标签、创建时间、更新时间）
+- SQL 内容高亮显示，支持一键复制
+
+---
+
+#### ② 对话页面（`/chat`）
+
+**新建对话：**
+- 选择一个已上传的 DDL
+- 输入目标数据库类型（如 `PostgreSQL`、`MySQL`、`SQLite`、`MaxCompute`）
+- 点击"开始对话"
+
+**进行对话：**
+- 在输入框输入自然语言问题（如"查询所有用户的订单总数"）
+- 按 `Enter` 发送，`Shift+Enter` 换行
+- AI 回复将展示文字解释 + SQL 代码块（语法高亮）
+- 可连续追问，上下文自动保持
+
+**继续历史对话：**
+- 通过 URL `/chat/:convId` 直接进入指定对话
+- 或在"历史"页面点击对话卡片进入
+
+---
+
+#### ③ 历史页面（`/history`）
+
+- 以卡片列表展示所有历史对话记录
+- 每张卡片显示：对话 ID、关联 DDL 名称、目标数据库
+- 点击卡片跳转到该对话，可继续提问
+- 点击 ❌ 按钮删除对话（弹出确认对话框）
+
+---
+
+#### ④ 设置页面（`/settings`）
+
+- **查看配置**：自动加载并展示当前 LLM 配置
+- **初始化配置**：如果尚未配置，点击"初始化配置"按钮
+- **修改配置项**：
+  - **API 地址（base_url）**：如 `https://api.deepseek.com/v1`
+  - **API Key**：密码输入框，已保存的 Key 会脱敏显示（`sk-****`）
+  - **模型名（model）**：如 `deepseek-chat`、`gpt-4o`、`claude-sonnet-4-20250514`
+  - 每个字段独立保存，仅保存有改动的字段
+
+---
+
+#### 完整使用流程示例
+
+```text
+1. 打开 http://localhost:8000 → 自动跳转到 DDL 管理页面
+2. 先进入"设置"，配置 LLM API（base_url / api_key / model）
+3. 回到"DDL 管理"，点击"上传 DDL"，输入表结构和名称
+4. 进入"对话"，选择刚上传的 DDL，输入目标数据库，点击"开始对话"
+5. 输入自然语言查询 → 获得 AI 生成的 SQL
+6. 可继续追问或返回历史记录查看
+```
+
+---
+
+### 常见问题
+
+**Q: 前端页面白屏 / 无法加载？**
+A: 
+- 开发模式：确认两个终端都已启动，访问 `http://localhost:5173`
+- 生产模式：确认已执行 `npm run build`，访问 `http://localhost:8000`
+- 检查浏览器控制台是否有网络错误
+
+**Q: API 请求返回 422 或 CORS 错误？**
+A:
+- 开发模式：确保前端开发服务器在 `localhost:5173` 运行，后端在 `localhost:8000`
+- Vite 代理配置在 `frontend/vite.config.ts` 中，确保 `/api` 代理指向正确的后端地址
+
+**Q: `npm install` 报错？**
+A: 确保 Node.js >= 18，npm >= 9。可尝试删除 `node_modules/` 后重新安装：
+```bash
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+```
+
+**Q: `npm run build` 构建失败？**
+A: 检查 TypeScript 类型错误：
+```bash
+cd frontend
+npx tsc --noEmit
+```
+根据错误提示修类型后再重新构建。
+
+**Q: 如何更换前端端口？**
+A: 修改 `frontend/vite.config.ts` 中的 `server.port` 字段，同时更新后端 CORS 配置中的 `allow_origins`。

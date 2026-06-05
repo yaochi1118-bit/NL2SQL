@@ -114,6 +114,33 @@ def test_config_and_chat_api():
         assert r.status_code == 200
         assert r.json() == []
 
+        # 13. Create conversation without DDL (auto-DDL mode)
+        r = client.post(
+            "/api/conversations",
+            json={"target_db": "mysql"},
+        )
+        assert r.status_code == 201, f"Expected 201, got {r.status_code}: {r.text}"
+        auto_conv = r.json()
+        assert auto_conv["ddl_name"] == "", f"Expected empty ddl_name, got {auto_conv['ddl_name']!r}"
+        assert auto_conv["target_db"] == "mysql"
+        assert "id" in auto_conv
+        assert "auto" in auto_conv["id"], f"Expected 'auto' in conv id, got {auto_conv['id']}"
+
+        # 14. Create conversation without DDL (explicit None)
+        r = client.post(
+            "/api/conversations",
+            json={"ddl_name": None, "target_db": "postgresql"},
+        )
+        assert r.status_code == 201, f"Expected 201, got {r.status_code}: {r.text}"
+        auto_conv2 = r.json()
+        assert auto_conv2["ddl_name"] == ""
+        assert auto_conv2["target_db"] == "postgresql"
+
+        # 15. Clean up: delete auto-DDL conversations
+        for c_id in [auto_conv["id"], auto_conv2["id"]]:
+            r = client.delete(f"/api/conversations/{c_id}")
+            assert r.status_code == 200
+
         print("=== ALL CHAT & CONFIG API TESTS PASSED ===")
 
     finally:

@@ -60,54 +60,98 @@ export default function Settings() {
 
   return (
     <div>
-      <h1 style={{ marginBottom: 24 }}>设置</h1>
+      {/* Page Header */}
+      <header className="page-header">
+        <div className="page-header-left">
+          <div className="page-header-sup">Configuration</div>
+          <h1>系统 <span className="gold" style={{color:'var(--accent-gold)'}}>设置</span></h1>
+          <div className="page-header-desc">管理 API 连接与模型参数</div>
+        </div>
+      </header>
 
-      <div style={{
-        background: 'var(--bg-secondary)', borderRadius: 8, padding: 24,
-        border: '1px solid var(--border)', maxWidth: 480,
-      }}>
-        {error && <div style={{ color: 'var(--danger)', marginBottom: 12, fontSize: 14 }}>{error}</div>}
-        {success && <div style={{ color: 'var(--success)', marginBottom: 12, fontSize: 14 }}>{success}</div>}
+      {error && <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14 }}>{error}</div>}
 
-        {exists && config && (
-          <div style={{
-            background: 'var(--bg-tertiary)', borderRadius: 6, padding: 12, marginBottom: 20,
-            fontSize: 13, color: 'var(--text-secondary)',
-          }}>
-            <div>当前配置: {config.provider} / {config.model}</div>
-            <div>API Key: {config.api_key}</div>
+      {/* API Config Section */}
+      <div className="settings-section" style={{ animation: 'fade-slide-up 0.5s ease-out' }}>
+        <div className="settings-section-title">
+          <span style={{color:'var(--accent-teal)'}}>◈</span> API 配置
+        </div>
+        <div className="settings-card">
+          {exists && config && (
+            <div className="settings-current">
+              <div className="settings-current-row">
+                <span className="settings-current-label">Provider</span>
+                <span className="settings-current-value">{config.provider}</span>
+              </div>
+              <div className="settings-current-row">
+                <span className="settings-current-label">Model</span>
+                <span className="settings-current-value">{config.model}</span>
+              </div>
+              <div className="settings-current-row">
+                <span className="settings-current-label">API Key</span>
+                <span className="settings-current-value" style={{
+                  color: 'var(--accent-gold)',
+                  filter: 'blur(4px)',
+                  cursor: 'pointer',
+                  transition: 'filter 0.3s',
+                }}
+                  onMouseEnter={e => (e.target as HTMLElement).style.filter = 'blur(0)'}
+                  onMouseLeave={e => (e.target as HTMLElement).style.filter = 'blur(4px)'}
+                >
+                  {config.api_key}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">Base URL</label>
+            <input className="form-input" value={baseUrl} onChange={e => setBaseUrl(e.target.value)} placeholder="https://api.openai.com/v1" />
           </div>
-        )}
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', marginBottom: 4, fontSize: 13, color: 'var(--text-secondary)' }}>
-            Base URL
-          </label>
-          <input value={baseUrl} onChange={e => setBaseUrl(e.target.value)} placeholder="https://api.openai.com/v1" />
+          <div className="form-group">
+            <label className="form-label">
+              API Key {exists && <span style={{ color: 'var(--text-muted)', fontWeight: 300, fontSize: 11 }}>（留空则不修改）</span>}
+            </label>
+            <input
+              className="form-input"
+              type="password"
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+              placeholder={exists ? '输入新 Key 以修改' : 'sk-...'}
+            />
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Model</label>
+            <input className="form-input" value={model} onChange={e => setModel(e.target.value)} placeholder="gpt-4o, claude-3-opus, ..." />
+          </div>
+
+          <div className="settings-save-bar">
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? '保存中...' : '保存配置'}
+            </button>
+            {success && <span className="settings-success-msg">✓ {success}</span>}
+          </div>
         </div>
+      </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', marginBottom: 4, fontSize: 13, color: 'var(--text-secondary)' }}>
-            API Key {exists && '(留空则不修改)'}
-          </label>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={e => setApiKey(e.target.value)}
-            placeholder={exists ? '输入新 Key 以修改' : 'sk-...'}
-          />
+      {/* Conversation Settings Section */}
+      <div className="settings-section" style={{ animation: 'fade-slide-up 0.5s ease-out 0.15s both' }}>
+        <div className="settings-section-title">
+          <span style={{color:'var(--accent-gold)'}}>◈</span> 对话设置
         </div>
-
-        <div style={{ marginBottom: 24 }}>
-          <label style={{ display: 'block', marginBottom: 4, fontSize: 13, color: 'var(--text-secondary)' }}>
-            Model
-          </label>
-          <input value={model} onChange={e => setModel(e.target.value)} placeholder="gpt-4o" />
+        <div className="settings-card">
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" defaultChecked style={{ width: 16, height: 16, accentColor: 'var(--accent-gold)' }} />
+              <span>启用自动 DDL 匹配</span>
+            </label>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, marginLeft: 24 }}>
+              不指定 DDL 时自动在所有 Schema 中匹配最合适的
+            </div>
+          </div>
         </div>
-
-        <button className="btn-primary" onClick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : '保存'}
-        </button>
       </div>
     </div>
   )
